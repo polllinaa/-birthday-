@@ -1,314 +1,377 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<!--  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - >
-<  index.html: VLC media player web interface - VLM
-< - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - >
-<  Copyright (C) 2005-2014 VLC authors and VideoLAN
-<  $Id$
-<
-<  Authors: Brandon Brooks <bwbrooks -at- archmageinc -dot- com>
-<
-<  This program is free software; you can redistribute it and/or modify
-<  it under the terms of the GNU General Public License as published by
-<  the Free Software Foundation; either version 2 of the License, or
-<  (at your option) any later version.
-<
-<  This program is distributed in the hope that it will be useful,
-<  but WITHOUT ANY WARRANTY; without even the implied warranty of
-<  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-<  GNU General Public License for more details.
-<
-<  You should have received a copy of the GNU General Public License
-<  along with this program; if not, write to the Free Software
-<  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
-< - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
-<html>
-	<head>
-		<title><?vlc gettext("VLC media player - Web Interface") ?></title>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-		<meta name="referrer" content="no-referrer" />
-		<link href="favicon.ico" type="image/x-icon" rel="shortcut icon" />
-		<script type="text/javascript" src="js/common.js"></script>
-		<script type="text/javascript">
-		//<![CDATA[
-			if(isMobile()){
-				window.location='mobile.html';
-			}
-		//]]>
-		</script>
-		<link type="text/css" href="css/ui-lightness/jquery-ui-1.8.13.custom.css" rel="stylesheet" />
-		<link type="text/css" href="css/main.css" rel="stylesheet" />
-		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.1/jquery.min.js"></script>
-		<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.13/jquery-ui.min.js"></script>
-		<script type="text/javascript" src="js/jquery.jstree.js"></script>
-		<script type="text/javascript" src="js/ui.js"></script>
-		<script type="text/javascript" src="js/controllers.js"></script>
-		<script type="text/javascript">
-		//<![CDATA[
-			var pollStatus	=	true;
-			$(function(){
-				$('.button').hover(function(){$(this).addClass('ui-state-hover')},function(){$(this).removeClass('ui-state-hover')});
-				$('#buttonPlayList').click(function(){
-					$('#libraryContainer').animate({
-						height: 'toggle'
-					});
-					$('#buttonszone1').animate({
-						width: 'toggle'
-					});
-					return false;
-				});
-				$('#buttonViewer').click(function(){
-					$('#viewContainer').animate({
-						height: 'toggle'
-					})
-					return false;
-				});
-				$('#buttonEqualizer').click(function(){
-					updateEQ();
-					$('#window_equalizer').dialog('open');
-					return false;
-				})
-				$('#buttonOffsets').click(function(){
-					$('#window_offset').dialog('open');
-					return false;
-				});
-				$('#buttonBatch').click(function(){
-					$('#window_batch').dialog('open');
-					return false;
-				});
-				$('#buttonOpen').click(function(){
-					browse_target	=	'default';
-					browse();
-					$('#window_browse').dialog('open');
-					return false;
-				});
-				$('#buttonPrev').mousedown(function(){
-					intv	=	1;
-					ccmd	=	'prev';
-					setIntv();
-					return false;
-				});
-				$('#buttonPrev').mouseup(function(){
-					if(intv<=5){
-						sendCommand({'command':'pl_previous'});
-					}
-					intv	=	0;
-					return false;
-				});
-				$('#buttonNext').mousedown(function(){
-					intv	=	1;
-					ccmd	=	'next';
-					setIntv();
-					return false;
-				});
-				$('#buttonNext').mouseup(function(){
-					if(intv<=5){
-						sendCommand({'command':'pl_next'});
-					}
-					intv	=	0;
-					return false;
-				});
-				$('#buttonPlEmpty').click(function(){
-					sendCommand({'command':'pl_empty'})
-					updatePlayList(true);
-					return false;
-				});
-				$('#buttonLoop').click(function(){
-					sendCommand({'command':'pl_loop'});
-					return false;
-				});
-				$('#buttonRepeat').click(function(){
-					sendCommand({'command':'pl_repeat'});
-					return false;
-				});
-				$('#buttonShuffle').click(function(){
-					sendCommand({'command':'pl_random'});
-					return false;
-				})
-				$('#buttonRefresh').click(function(){
-				    updatePlayList(true);
-				    return false;
-				});
-				$('#buttonPlPlay').click(function(){
-					sendCommand({
-						'command': 'pl_play',
-						'id':$('.jstree-clicked','#libraryTree').first().parents().first().attr('id').substr(5)
-					})
-					return false;
-				});
-				$('#buttonPlAdd').click(function(){
-					$('.jstree-clicked','#libraryTree').each(function(){
-						if($(this).parents().first().attr('uri')){
-							sendCommand({
-								'command':'in_enqueue',
-								'input' : $(this).parents().first().attr('uri')
-							});
-						};
-					});
-					$('#libraryTree').jstree('deselect_all');
-					setTimeout(function(){updatePlayList(true);},1000);
-					return false;
-				});
-				$('#buttonStreams, #buttonStreams2').click(function(){
-					updateStreams();
-					$('#window_streams').dialog('open');
-				});
-				$('#buttonSout').click(function(){
-					if(current_que=='main'){
-						$('#windowStreamConfirm').dialog('open');
-					}else{
-						$('#player').empty();
-						current_que		=	'main';
-						sendVLMCmd('del Current');
-						updateStatus();
-					}
-					return false;
-				});
-				$('#qrCodeConfirm').dialog({
-					autoOpen: false,
-					width:600,
-					modal: true,
-					buttons:{
-						"<?vlc gettext("Yes") ?>":function(){
-							$(this).dialog('close');
-							var urlimg = $('#mobileintflink').prop('href');
-							var codeimg = $('<img width="350" height="350" alt="qrcode"/>');
-							codeimg.attr('src', 'https://chart.apis.google.com/chart?cht=qr&chs=350x350&chld=L&choe=UTF-8&chl=' + encodeURIComponent(urlimg));
-							codeimg.dialog({width: 350, height: 350, title: "<?vlc gettext("QR Code") ?>"});
-						},
-						"<?vlc gettext("No") ?>":function(){
-							$(this).dialog('close');
-							window.location = $('#mobileintflink').attr('href');
-						}
-					}
-				});
-				$('#windowStreamConfirm').dialog({
-					autoOpen: false,
-					width:600,
-					modal: true,
-					buttons:{
-						"<?vlc gettext("Yes") ?>":function(){
-							var file			=	$('[current="current"]','#libraryTree').length>0 ? $('[current="current"]','#libraryTree').first().attr('uri') : ($('.jstree-clicked','#libraryTree').length>0 ? $('.jstree-clicked','#libraryTree').first().parents().first().attr('uri') : ($('#plid_'+current_playlist_id).attr('uri') ? $('#plid_'+current_playlist_id).attr('uri') : false));
-							if(file){
-								if($('#viewContainer').css('display')=='none'){
-									$('#buttonViewer').click();
-								}
-								var defaultStream	=	'new Current broadcast enabled input "'+file+'" output #transcode{vcodec=FLV1,vb=4096,fps=25,scale=1,acodec=mp3,ab=512,samplerate=44100,channels=2}:std{access='+$('#stream_protocol').val()+',mux=avformat{{mux=flv}},dst=0.0.0.0:'+$('#stream_port').val()+'/'+$('#stream_file').val()+'}';
-								sendVLMCmd('del Current;'+defaultStream+';control Current play');
-								$('#player').attr('href',$('#stream_protocol').val()+'://'+$('#stream_host').val()+':'+$('#stream_port').val()+'/'+$('#stream_file').val());
-								current_que			=	'stream';
-								updateStreams();
-							}
-							$(this).dialog('close');
-						},
-						"<?vlc gettext("No") ?>":function(){
-							$(this).dialog('close');
-						}
-					}
-				});
-				$('#viewContainer').animate({height: 'toggle'});
-			});
-			/* delay script loading so we won't block if we have no net access */
-			$.getScript('https://releases.flowplayer.org/js/flowplayer-3.2.6.min.js', function(data, textStatus){
-				$('#player').empty();
-				flowplayer("player", "https://releases.flowplayer.org/swf/flowplayer-3.2.7.swf");
-				/* .getScript only handles success() */
-			 });
-		//]]>
-		</script>
-	</head>
-	<body id="regular_layout">
-			<div class="centered">
-			<div id="mainContainer" class="centered">
-			<div id="controlContainer" class="ui-widget">
-				<div id="controlTable" class="ui-widget-content">
-					<ul id="controlButtons">
-						<li id="buttonPrev" class="button48  ui-corner-all" title="<?vlc gettext("Previous") ?>"></li>
-						<li id="buttonPlay" class="button48  ui-corner-all paused" title="<?vlc gettext("Play") ?>"></li>
-						<li id="buttonNext" class="button48  ui-corner-all" title="<?vlc gettext("Next") ?>"></li>
-						<li id="buttonOpen" class="button48  ui-corner-all" title="<?vlc gettext("Open Media") ?>"></li>
-						<li id="buttonStop" class="button48  ui-corner-all" title="<?vlc gettext("Stop") ?>"></li>
-						<li id="buttonFull" class="button48  ui-corner-all" title="<?vlc gettext("Full Screen") ?>"></li>
-						<li id="buttonSout" class="button48  ui-corner-all" title="<?vlc gettext("Easy Stream") ?>"></li>
-					</ul>
-					<ul id="buttonszone2" class="buttonszone">
-						<li id="buttonPlayList" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Hide / Show Library") ?>"><span class="ui-icon ui-icon-note"></span><?vlc gettext("Hide / Show Library") ?></li>
-						<li id="buttonViewer" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Hide / Show Viewer") ?>"><span class="ui-icon ui-icon-video"></span><?vlc gettext("Hide / Show Viewer") ?></li>
-						<li id="buttonStreams" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Manage Streams") ?>"><span class="ui-icon ui-icon-script"></span><?vlc gettext("Manage Streams") ?></li>
-						<li id="buttonOffsets" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Track Synchronisation") ?>"><span class="ui-icon ui-icon-transfer-e-w"></span><?vlc gettext("Track Synchronisation") ?></li>
-						<li id="buttonEqualizer" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Equalizer") ?>"><span class="ui-icon ui-icon-signal"></span><?vlc gettext("Equalizer") ?></li>
-						<li id="buttonBatch" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("VLM Batch Commands") ?>"><span class="ui-icon ui-icon-suitcase"></span><?vlc gettext("VLM Batch Commands") ?></li>
-					</ul>
-					<div id="volumesliderzone">
-						<div id="volumeSlider" title="Volume"><img src="images/speaker-32.png" class="ui-slider-handle" alt="volume"/></div>
-						<div id="currentVolume" class="dynamic">50%</div>
-					</div>
-					<div id="artszone">
-						<img id="albumArt" src="/art" width="141px" height="130px" alt="Album Art"/>
-					</div>
-					<div id="mediaTitle" class="dynamic"></div>
-					<div id="seekContainer">
-						<div id="seekSlider" title="<?vlc gettext("Seek Time") ?>"></div>
-						<div id="currentTime" class="dynamic">00:00:00</div>
-						<div id="totalTime" class="dynamic">00:00:00</div>
-					</div>
-				</div>
-			</div>
-			<div id="libraryContainer" class="ui-widget">
-				<ul id="buttonszone1" align="left" class="buttonszone ui-widget-content" style="overflow:hidden; white-space: nowrap;">
-					<li id="buttonShuffle" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Shuffle") ?>"><span class="ui-icon ui-icon-shuffle"></span><?vlc gettext("Shuffle") ?></li>
-					<li id="buttonLoop" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Loop") ?>"><span class="ui-icon ui-icon-refresh"></span><?vlc gettext("Loop") ?></li>
-					<li id="buttonRepeat" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Repeat") ?>"><span class="ui-icon ui-icon-arrowreturnthick-1-w"></span><?vlc gettext("Repeat") ?></li>
-					<li id="buttonPlEmpty" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Empty Playlist") ?>"><span class="ui-icon ui-icon-trash"></span><?vlc gettext("Empty Playlist") ?></li>
-					<li id="buttonPlAdd" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Queue Selected") ?>"><span class="ui-icon ui-icon-plus"></span><?vlc gettext("Queue Selected") ?></li>
-					<li id="buttonPlPlay" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Play Selected") ?>"><span class="ui-icon ui-icon-play"></span><?vlc gettext("Play Selected") ?></li>
-					<li id="buttonRefresh" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Refresh List") ?>"><span class="ui-icon ui-icon-arrowrefresh-1-n"></span><?vlc gettext("Refresh List") ?></li>
-				</ul>
-				<div id="libraryTree" class="ui-widget-content"></div>
-			</div>
-			<div id="viewContainer" class="ui-widget">
-				<div id="mediaViewer" class="ui-widget-content">
-					<div href="http://localhost:8081/stream.flv" style="display:block; width:100%" id="player">
-						<p><?vlc gettext("Loading flowplayer...") ?><br/><?vlc gettext("If nothing appears, check your internet connection.") ?></p>
-					</div>
-				</div>
-			</div>
-			<div class="footer">
-				VLC <?vlc print(vlc.misc.version() .. ' - Lua Web Interface - <a id="mobileintflink" href="mobile.html">Mobile Interface</a> - ' .. vlc.misc.copyright()) ?>
-			</div>
-		</div>
-		</div>
-		<div id="qrCodeConfirm" title="<?vlc gettext("Generate QR Code") ?>">
-			<p>
-				<?vlc gettext("VLC can display a QR code linking to the mobile version of the web interface; the web address of the web interface of your VLC media player instance will be transmitted over the internet to the Google Image Charts web service to generate this QR code.") ?>
-			</p>
-			<p>
-				<?vlc gettext("Do you want to go ahead with this?") ?>
-			</p>
-		</div>
-		<div id="windowStreamConfirm" title="<?vlc gettext("Confirm Stream Settings") ?>">
-			<p>
-				<?vlc gettext("By creating a stream, the <i>Main Controls</i> will operate the stream instead of the main interface.") ?>
-				<?vlc gettext("The stream will be created using default settings, for more advanced configuration, or to modify the default settings, select the button to the right: <i>Manage Streams</i>") ?>
-				<span id="buttonStreams2" class="button ui-widget ui-state-default ui-corner-all" title="<?vlc gettext("Manage Streams") ?>"><span class="ui-icon ui-icon-script"></span></span>
-			</p>
-			<p>
-				<?vlc gettext("Once the stream is created, the <i>Media Viewer</i> window will display the stream.") ?>
-				<?vlc gettext("Volume will be controlled by the player, and not the <i>Main Controls</i>.") ?>
-			</p>
-			<p>
-				<?vlc gettext("The current playing item will be streamed. If there is no currently playing item, the first selected item from the <i>Library</i> will be the subject of the stream.") ?>
-			</p>
-			<p>
-				<?vlc gettext("To stop the stream and resume normal controls, click the <i>Open Stream</i> button again.") ?>
-			</p>
-			<p>
-				<?vlc gettext("Are you sure you wish to create the stream?") ?>
-			</p>
-		</div>
-		<?vlc
-		current_page = "index"
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>День рождения Полины</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: #0d0202;
+      color: #fff;
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0d0202; }
+    ::-webkit-scrollbar-thumb { background: #800020; border-radius: 3px; }
 
-		dialogs("browse_window.html","stream_window.html","create_stream.html","offset_window.html","mosaic_window.html","equalizer_window.html","batch_window.html","error_window.html");
-		?>
-	</body>
+    #particles {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .particle {
+      position: absolute;
+      width: 3px; height: 3px;
+      background: #c0c0c0;
+      border-radius: 50%;
+      opacity: 0;
+      animation: particleDrift 6s ease-in-out infinite;
+    }
+    @keyframes particleDrift {
+      0% { transform: translateY(100vh) scale(0); opacity: 0; }
+      20% { opacity: 0.6; }
+      80% { opacity: 0.6; }
+      100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+    }
+
+    .hero {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+      background: linear-gradient(135deg, #0d0202 0%, #1a0404 30%, #800020 70%, #1a0404 100%);
+    }
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(192,192,192,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-ornament {
+      font-size: 13px; letter-spacing: 5px;
+      color: rgba(192,192,192,0.4);
+      margin-bottom: 20px; position: relative;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(36px, 8vw, 60px); font-weight: 700;
+      color: #fff; margin-bottom: 6px;
+      text-shadow: 0 2px 40px rgba(128,0,32,0.5); position: relative;
+    }
+    .hero-title span {
+      display: block; font-size: clamp(24px, 5vw, 38px);
+      font-weight: 600; color: #c0c0c0; margin-top: 4px;
+    }
+
+    .hero-name {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(48px, 12vw, 80px); font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #c0c0c0 50%, #fff 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin: 10px 0; line-height: 1.1;
+    }
+
+    .hero-sub {
+      font-size: clamp(14px, 3vw, 18px);
+      font-weight: 300; letter-spacing: 2px;
+      color: rgba(255,255,255,0.7); margin-top: 4px;
+    }
+
+    .hero-date {
+      font-size: clamp(17px, 3.5vw, 22px);
+      font-weight: 300; letter-spacing: 3px;
+      color: rgba(255,255,255,0.8); margin-top: 12px;
+    }
+    .hero-date strong { font-weight: 600; color: #fff; }
+
+    .hero-address {
+      font-size: clamp(13px, 2.5vw, 16px);
+      color: rgba(255,255,255,0.6);
+      margin-top: 10px; line-height: 1.6;
+      max-width: 360px;
+    }
+
+    .hero-waiting {
+      margin-top: 24px;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(20px, 4vw, 28px);
+      color: #c0c0c0;
+    }
+
+    .scroll-hint {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      color: rgba(192,192,192,0.4); font-size: 10px; letter-spacing: 2px;
+      text-transform: uppercase;
+      animation: fadeInOut 2s ease-in-out infinite;
+    }
+    .scroll-hint .arrow {
+      width: 18px; height: 18px;
+      border-right: 1px solid rgba(192,192,192,0.3);
+      border-bottom: 1px solid rgba(192,192,192,0.3);
+      transform: rotate(45deg);
+      animation: arrowBounce 2s ease-in-out infinite;
+    }
+    @keyframes fadeInOut {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    @keyframes arrowBounce {
+      0%, 100% { transform: rotate(45deg) translate(0, 0); }
+      50% { transform: rotate(45deg) translate(4px, 4px); }
+    }
+
+    .section {
+      position: relative; z-index: 1;
+      padding: 70px 24px; max-width: 680px; margin: 0 auto;
+    }
+    .section-burgundy { background: linear-gradient(180deg, #0d0202, #1a0404, #0d0202); }
+    .section-dark { background: #0d0202; }
+
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(192,192,192,0.1), transparent);
+      max-width: 240px; margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+      color: rgba(192,192,192,0.35); margin-bottom: 12px; text-align: center;
+    }
+
+    .section-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(26px, 5vw, 34px); font-weight: 700;
+      color: #fff; text-align: center; margin-bottom: 20px;
+    }
+    .section-title .highlight { color: #c0c0c0; }
+
+    .section-text {
+      font-size: 14px; line-height: 1.8;
+      color: rgba(255,255,255,0.75);
+      text-align: center; max-width: 500px; margin: 0 auto;
+    }
+
+    .colors-row {
+      display: flex; justify-content: center; gap: 16px; margin: 20px 0 12px; flex-wrap: wrap;
+    }
+    .color-dot {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.12);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 500; letter-spacing: 1px;
+    }
+    .color-dot:nth-child(1) { background: #800020; color: #fff; }
+    .color-dot:nth-child(2) { background: #c0c0c0; color: #222; }
+    .color-dot:nth-child(3) { background: #fff; color: #222; }
+    .color-dot:nth-child(4) { background: #111; color: #ccc; border-color: rgba(255,255,255,0.25); }
+
+    .icon-list {
+      list-style: none; margin-top: 20px; max-width: 440px; margin-left: auto; margin-right: auto;
+    }
+    .icon-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0; font-size: 14px;
+      color: rgba(255,255,255,0.75); line-height: 1.5;
+    }
+    .icon-list li::before {
+      content: '✦'; color: #c0c0c0; font-size: 11px; flex-shrink: 0;
+    }
+
+    .waiting-section {
+      text-align: center; padding: 60px 24px;
+    }
+    .waiting-section .big-emoji { font-size: 44px; margin-bottom: 14px; }
+    .waiting-section h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 10px;
+    }
+
+    .wishlist-btn {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 14px 36px;
+      background: linear-gradient(135deg, #800020, #3d0c0c);
+      border: 1px solid rgba(192,192,192,0.15);
+      border-radius: 50px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-decoration: none;
+      transition: all 0.3s;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .wishlist-btn:hover {
+      background: linear-gradient(135deg, #a00030, #5c0e0e);
+      transform: translateY(-2px);
+    }
+
+    .contact-note {
+      text-align: center; margin-top: 16px;
+    }
+    .contact-note p {
+      font-size: 14px; line-height: 1.8;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .footer {
+      text-align: center; padding: 40px 24px 28px;
+      color: rgba(192,192,192,0.18);
+      font-size: 11px; letter-spacing: 2px;
+    }
+    .footer-heart { font-size: 22px; margin-bottom: 10px; opacity: 0.4; }
+
+    @media (max-width: 480px) {
+      .section { padding: 50px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="particles"></div>
+
+  <section class="hero">
+    <div class="hero-ornament">Приглашение</div>
+    <div class="hero-title">
+      Приглашаем тебя на
+      <span>День рождения</span>
+    </div>
+    <div class="hero-name">Полины</div>
+    <div class="hero-sub">Дата</div>
+    <div class="hero-date"><strong>20 июня</strong> &nbsp;·&nbsp; 15:00 – 16:00</div>
+    <div class="hero-address">
+      Осиновское сельское поселение,<br>
+      санаторий «Здоровье» – 2, 495
+    </div>
+    <div class="hero-waiting">С нетерпением буду тебя ждать ❤️</div>
+    <div class="scroll-hint">
+      <span>Листай вниз</span>
+      <div class="arrow"></div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-dark">
+    <div class="section-label">Фото</div>
+    <div class="section-title">Красивые <span class="highlight">фотографии</span> 📸</div>
+    <p class="section-text">
+      Жду тебя в красивом нарядном платье — будем делать шикарные фотографии и классно проводить время!
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-burgundy">
+    <div class="section-label">Активности</div>
+    <div class="section-title">Бассейн 🏊‍♀️</div>
+    <p class="section-text">
+      На территории будет бассейн! Если хочешь — бери купальник с собой 🌊
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-dark">
+    <div class="section-label">Цвета праздника</div>
+    <div class="section-title">Дресс-<span class="highlight">код</span></div>
+    <p class="section-text">
+      День рождения будет в этих цветах:
+    </p>
+    <div class="colors-row">
+      <div class="color-dot">Бордовый</div>
+      <div class="color-dot">Серебро</div>
+      <div class="color-dot">Белый</div>
+      <div class="color-dot">Чёрный</div>
+    </div>
+    <p class="section-text" style="margin-top: 12px; font-size: 12px; color: rgba(255,255,255,0.45);">
+      Подбери что-то в этой гамме — будем смотреться идеально ✨
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-burgundy">
+    <div class="section-label">Идеи</div>
+    <div class="section-title">Твои <span class="highlight">идеи</span> 💡</div>
+    <p class="section-text">
+      Если у тебя есть идеи для музыки, еды или развлечений — напиши мне! Я открыта к твоим предложениям 🎶
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-dark">
+    <div class="section-label">Досуг</div>
+    <div class="section-title">Настольные <span class="highlight">игры</span> 🎲</div>
+    <p class="section-text">
+      Если у тебя есть классные настольные игры для компании — бери с собой! Будет весело играть всем вместе 🎉
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-burgundy">
+    <div class="section-label">Плейлист</div>
+    <div class="section-title">Музыка <span class="highlight">для вечера</span> 🎵</div>
+    <p class="section-text">
+      Если у тебя есть любимые треки или предпочтения по музыке — напиши мне, я добавлю в плейлист!
+    </p>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-dark">
+    <div class="section-label">Контакты</div>
+    <div class="section-title">Предложения — <span class="highlight">в личку</span> 💌</div>
+    <div class="contact-note">
+      <p>По всем вопросам, идеям и пожеланиям пиши мне лично в Telegram</p>
+    </div>
+    <div style="text-align: center; margin-top: 16px;">
+      <p style="font-size: 14px; line-height: 1.8; color: rgba(255,255,255,0.7); margin-bottom: 12px;">Если не знаете что дарить — вот идеи,<br>но денежки тоже приветствуются ❤️</p>
+      <a class="wishlist-btn" href="https://wishti.com/list/q3ALMS6E" target="_blank">Мой вишлист 🎁</a>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <section class="section section-burgundy">
+    <div class="waiting-section">
+      <div class="big-emoji">🎀</div>
+      <h2>С нетерпением жду тебя!</h2>
+      <p class="section-text" style="margin-top: 10px;">Сделаем этот день незабываемым ✨</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    <div class="footer-heart">❤️</div>
+    С любовью, Полина
+  </div>
+
+  <script>
+    (function() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 30; i++) {
+        const el = document.createElement('div');
+        el.className = 'particle';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.animationDuration = (4 + Math.random() * 6) + 's';
+        el.style.animationDelay = (Math.random() * 8) + 's';
+        el.style.width = el.style.height = (2 + Math.random() * 3) + 'px';
+        container.appendChild(el);
+      }
+    })();
+  </script>
+</body>
 </html>
